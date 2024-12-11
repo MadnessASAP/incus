@@ -6,6 +6,9 @@ incus-*.tar.xz
 *~
 tags
 
+# No lock file means deps a refreshed every checkout
+/flake.lock
+
 # Potential binaries
 cmd/fuidshift/fuidshift
 cmd/incus/incus
