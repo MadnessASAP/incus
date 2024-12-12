@@ -1,8 +1,7 @@
-{
-  vendorHash,
-  version,
-
-  buildGoModule,
+{ vendorHash
+, version
+, buildGoModule
+,
 }: buildGoModule {
   inherit
     vendorHash
