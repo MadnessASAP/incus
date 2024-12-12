@@ -20,11 +20,11 @@ let
     pipe;
 in
 buildGoModule {
-  pname = "incus";
-  src = ./..;
   inherit
     vendorHash
     version;
+  pname = "incus";
+  src = ./..;
 
   nativeBuildInputs = [
     pkg-config

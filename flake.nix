@@ -13,20 +13,17 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
+        "aarch64-linux"
       ];
 
       perSystem = { pkgs, ... }: {
-        packages.incus = pkgs.callPackage ./flake/incus.nix { inherit version vendorHash; };
-
-        devShells = {
-          default = pkgs.mkShell {
-            packages = with pkgs; [
-              go
-              golangci-lint
-              gopls
-            ];
-          };
+        packages = rec {
+          default = incus;
+          incus = pkgs.callPackage ./flake/incus.nix { inherit version vendorHash; };
+          client = pkgs.callPackage ./flake/client.nix { inherit version vendorHash; };
         };
+
+        devShells.default = pkgs.callPackage ./flake/shell.nix { };
 
         formatter = pkgs.nixpkgs-fmt;
       };
