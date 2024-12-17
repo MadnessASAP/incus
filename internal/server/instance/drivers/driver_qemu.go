@@ -4148,7 +4148,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 	} else if isRBDImage {
 		blockDev["driver"] = "rbd"
 
-		_, poolName, volName, opts, err := device.DiskParseRBDFormat(driveConf.DevPath)
+		poolName, volName, opts, err := device.DiskParseRBDFormat(driveConf.DevPath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed parsing rbd string: %w", err)
 		}

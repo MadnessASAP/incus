@@ -30,13 +30,13 @@ const RBDFormatPrefix = "rbd"
 // RBDFormatSeparator is the field separate used in disk paths for RBD devices.
 const RBDFormatSeparator = " "
 
-// FIXME: This does not handle escaped strings
-// DiskParseRBDFormat parses an rbd formatted string, and returns the pool name, volume name, and list of options.
-func DiskParseRBDFormat(rbd string) (prefix string, pool string, volume string, opts map[string]string, err error) {
+// DiskParseRBDFormat parses an rbd formatted string, and returns the pool name, volume name, and map of options.
+func DiskParseRBDFormat(rbd string) (pool string, volume string, opts map[string]string, err error) {
+	// FIXME: This does not handle escaped strings
 	// Remove and check the prefix
-	prefix, rbd, _ = strings.Cut(rbd, RBDFormatSeparator)
+	prefix, rbd, _ := strings.Cut(rbd, RBDFormatSeparator)
 	if prefix != RBDFormatPrefix {
-		return "", "", "", nil, fmt.Errorf("Invalid rbd format, wrong prefix: %q", prefix)
+		return "", "", nil, fmt.Errorf("Invalid rbd format, wrong prefix: %q", prefix)
 	}
 
 	// Split the path and options
@@ -45,19 +45,21 @@ func DiskParseRBDFormat(rbd string) (prefix string, pool string, volume string, 
 	// Check for valid RBD path
 	pool, volume, validPath := strings.Cut(path, "/")
 	if !validPath {
-		return "", "", "", nil, fmt.Errorf("Invalid rbd format, missing pool and/or volume: %q", path)
+		return "", "", nil, fmt.Errorf("Invalid rbd format, missing pool and/or volume: %q", path)
 	}
 
 	// parse options
+	opts = make(map[string]string)
 	for _, o := range strings.Split(rawOpts, ":") {
 		k, v, isValid := strings.Cut(o, "=")
 		if !isValid {
-			return "", "", "", nil, fmt.Errorf("Invalid rbd format, bad option: %q", o)
+			return "", "", nil, fmt.Errorf("Invalid rbd format, bad option: %q", o)
 		}
+
 		opts[k] = v
 	}
 
-	return
+	return pool, volume, opts, nil
 }
 
 // DiskGetRBDFormat returns a rbd formatted string with the given values.
