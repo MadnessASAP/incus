@@ -4175,7 +4175,6 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 
 		// Parse the options (ceph credentials).
 		userName := storageDrivers.CephDefaultUser
-		clusterName := storageDrivers.CephDefaultCluster
 		poolName := ""
 
 		for _, option := range opts {
@@ -4188,9 +4187,6 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 				userName = fields[1]
 			} else if fields[0] == "pool" {
 				poolName = fields[1]
-			} else if fields[0] == "conf" {
-				baseName := filepath.Base(fields[1])
-				clusterName = strings.TrimSuffix(baseName, ".conf")
 			}
 		}
 
@@ -4203,29 +4199,6 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 		blockDev["pool"] = poolName
 		blockDev["image"] = rbdImageName
 		blockDev["user"] = userName
-		blockDev["server"] = []map[string]string{}
-
-		// Setup the Ceph cluster config (monitors and keyring).
-		monitors, err := storageDrivers.CephMonitors(clusterName)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, monitor := range monitors {
-			idx := strings.LastIndex(monitor, ":")
-			host := monitor[:idx]
-			port := monitor[idx+1:]
-
-			blockDev["server"] = append(blockDev["server"].([]map[string]string), map[string]string{
-				"host": strings.Trim(host, "[]"),
-				"port": port,
-			})
-		}
-
-		rbdSecret, err = storageDrivers.CephKeyring(clusterName, userName)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	readonly := slices.Contains(driveConf.Opts, "ro")
