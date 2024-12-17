@@ -158,10 +158,11 @@ type cmdConfigTrustAddCertificate struct {
 	config      *cmdConfig
 	configTrust *cmdConfigTrust
 
-	flagProjects   string
-	flagRestricted bool
-	flagName       string
-	flagType       string
+	flagProjects    string
+	flagRestricted  bool
+	flagName        string
+	flagType        string
+	flagDescription string
 }
 
 func (c *cmdConfigTrustAddCertificate) Command() *cobra.Command {
@@ -180,6 +181,7 @@ The following certificate types are supported:
 	cmd.Flags().StringVar(&c.flagProjects, "projects", "", i18n.G("List of projects to restrict the certificate to")+"``")
 	cmd.Flags().StringVar(&c.flagName, "name", "", i18n.G("Alternative certificate name")+"``")
 	cmd.Flags().StringVar(&c.flagType, "type", "client", i18n.G("Type of certificate")+"``")
+	cmd.Flags().StringVar(&c.flagDescription, "description", "", i18n.G("Certificate description")+"``")
 
 	cmd.RunE = c.Run
 
@@ -246,6 +248,7 @@ func (c *cmdConfigTrustAddCertificate) Run(cmd *cobra.Command, args []string) er
 	cert := api.CertificatesPost{}
 	cert.Certificate = base64.StdEncoding.EncodeToString(x509Cert.Raw)
 	cert.Name = name
+	cert.Description = c.flagDescription
 
 	if c.flagType == "client" {
 		cert.Type = api.CertificateTypeClient
@@ -565,7 +568,7 @@ func (c *cmdConfigTrustList) Run(cmd *cobra.Command, args []string) error {
 		headers = append(headers, column.Name)
 	}
 
-	return cli.RenderTable(c.flagFormat, headers, data, trust)
+	return cli.RenderTable(os.Stdout, c.flagFormat, headers, data, trust)
 }
 
 // List tokens.
@@ -725,7 +728,7 @@ func (c *cmdConfigTrustListTokens) Run(cmd *cobra.Command, args []string) error 
 		header = append(header, column.Name)
 	}
 
-	return cli.RenderTable(c.flagFormat, header, data, joinTokens)
+	return cli.RenderTable(os.Stdout, c.flagFormat, header, data, joinTokens)
 }
 
 // Remove.

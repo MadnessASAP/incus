@@ -2672,3 +2672,12 @@ Adds a new `X-Incus-aliases` HTTP header to set aliases while uploading an image
 ## `authorization_scriptlet`
 
 This adds the ability to define a scriptlet in a new configuration key, `authorization.scriptlet`, managing authorization on the Incus cluster.
+
+## `console_force`
+
+This adds support for forcing a connection to the console, even if there is already an active session.
+It introduces the new `--force` flag for connecting to the instance console.
+
+## `network_ovn_state_addresses`
+
+This adds extra fields to the OVN network state struct for the IPv4 and IPv6 addresses used on the uplink.
