@@ -4148,7 +4148,7 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 	} else if isRBDImage {
 		blockDev["driver"] = "rbd"
 
-		_, volName, opts, err := device.DiskParseRBDFormat(driveConf.DevPath)
+		_, poolName, volName, opts, err := device.DiskParseRBDFormat(driveConf.DevPath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed parsing rbd string: %w", err)
 		}
@@ -4173,32 +4173,20 @@ func (d *qemu) addDriveConfig(qemuDev map[string]string, bootIndexes map[string]
 		vol := storageDrivers.NewVolume(nil, "", volumeType, rbdContentType, volumeName, nil, nil)
 		rbdImageName := storageDrivers.CephGetRBDImageName(vol, "", false)
 
-		// Parse the options (ceph credentials).
-		userName := storageDrivers.CephDefaultUser
-		poolName := ""
-
-		for _, option := range opts {
-			fields := strings.Split(option, "=")
-			if len(fields) != 2 {
-				return nil, fmt.Errorf("Unexpected volume rbd option %q", option)
+		// scan & pass through options
+		blockDev["pool"] = poolName
+		blockDev["image"] = rbdImageName
+		for key, val := range opts {
+			// We use 'id' where qemu uses 'user'
+			if key == "id" {
+				blockDev["user"] = val
+			} else {
+				blockDev[key] = val
 			}
-
-			if fields[0] == "id" {
-				userName = fields[1]
-			} else if fields[0] == "pool" {
-				poolName = fields[1]
-			}
-		}
-
-		if poolName == "" {
-			return nil, fmt.Errorf("Missing pool name")
 		}
 
 		// The aio option isn't available when using the rbd driver.
 		delete(blockDev, "aio")
-		blockDev["pool"] = poolName
-		blockDev["image"] = rbdImageName
-		blockDev["user"] = userName
 	}
 
 	readonly := slices.Contains(driveConf.Opts, "ro")
