@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lxc/incus/v6/shared/api"
+	"github.com/lxc/incus/v6/shared/logger"
 	"github.com/lxc/incus/v6/shared/subprocess"
 )
 
@@ -57,15 +58,47 @@ func CephGetRBDImageName(vol Volume, snapName string, zombie bool) string {
 	return out
 }
 
+// callCephConf makes a call to `ceph-conf` to retrieve a given lookup value.
+// An empty string for `cluster`, `id`, or `conf` results in default values
+// being used.
+func callCephConf(cluster string, id string, conf string, lookup string) (value string, err error) {
+	const cmd = "ceph-conf"
+	var args []string
+
+	if cluster != "" {
+		args = append(args, "--cluster", cluster)
+	}
+
+	if id != "" {
+		// Prefix client. to client if it does not have a prefix
+		if !strings.Contains(id, ".") {
+			id = "client." + id
+		}
+		args = append(args, "--client", id)
+	}
+
+	if conf != "" {
+		args = append(args, "--conf", conf)
+	}
+
+	args = append(args, lookup)
+
+	value, err = subprocess.RunCommand(cmd, args...)
+	ctx := logger.Ctx{
+		"cmd":    cmd,
+		"args":   args,
+		"err":    err,
+		"output": value,
+	}
+
+	logger.Debug("callCephConf", ctx)
+	return value, err
+}
+
 // CephMonitors calls `ceph-conf` for `mon_host` and parses the output for
 // monitor IP:port pairs.
 func CephMonitors(cluster string) ([]string, error) {
-	out, err := subprocess.RunCommand(
-		"ceph-conf",
-		"--cluster",
-		cluster,
-		"mon host",
-	)
+	out, err := callCephConf(cluster, "", "", "mon_host")
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Failed to get monitors for %q from ceph-conf: %w",
@@ -102,29 +135,14 @@ func CephMonitors(cluster string) ([]string, error) {
 
 // CephKeyring gets the key for a particular Ceph cluster and client name.
 func CephKeyring(cluster string, client string) (string, error) {
-	// Prefix client. to client if it does not have a prefix
-	if !strings.Contains(client, ".") {
-		client = "client." + client
-	}
-
 	// Sometimes the key is just, like, right there ya know
-	key, err := subprocess.RunCommand(
-		"ceph-conf",
-		"--cluster", cluster,
-		"--name", client,
-		"key",
-	)
+	key, err := callCephConf(cluster, client, "", "key")
 	if err == nil && key != "" {
 		return key, nil
 	}
 
 	// Sometimes it's in a keyfile
-	keyfile, err := subprocess.RunCommand(
-		"ceph-conf",
-		"--cluster", cluster,
-		"--name", client,
-		"keyfile",
-	)
+	keyfile, err := callCephConf(cluster, client, "", "keyfile")
 	if err == nil && keyfile != "" {
 		buf, err := os.ReadFile(keyfile)
 		if err != nil {
@@ -135,21 +153,10 @@ func CephKeyring(cluster string, client string) (string, error) {
 	}
 
 	// It's probably in a keyring
-	keyring, err := subprocess.RunCommand(
-		"ceph-conf",
-		"--cluster", cluster,
-		"--name", client,
-		"keyring",
-	)
+	keyring, err := callCephConf(cluster, client, "", "keyring")
 	if err == nil && keyring != "" {
 		// Use ceph-conf again to read the keyfile
-		key, err := subprocess.RunCommand(
-			"ceph-conf",
-			"--conf", keyring,
-			"--cluster", cluster,
-			"--name", client,
-			"key",
-		)
+		key, err := callCephConf(cluster, client, keyfile, "key")
 		if err == nil && key != "" {
 			return key, nil
 		}
