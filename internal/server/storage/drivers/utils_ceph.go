@@ -1,7 +1,6 @@
 package drivers
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -99,41 +98,6 @@ func CephMonitors(cluster string) ([]string, error) {
 	}
 
 	return cephMon, nil
-}
-
-func getCephKeyFromFile(path string) (string, error) {
-	cephKeyring, err := os.Open(path)
-	if err != nil {
-		return "", fmt.Errorf("Failed to open %q: %w", path, err)
-	}
-
-	// Locate the keyring entry and its value.
-	var cephSecret string
-	scan := bufio.NewScanner(cephKeyring)
-	for scan.Scan() {
-		line := scan.Text()
-		line = strings.TrimSpace(line)
-
-		if line == "" {
-			continue
-		}
-
-		if strings.HasPrefix(line, "key") {
-			fields := strings.SplitN(line, "=", 2)
-			if len(fields) < 2 {
-				continue
-			}
-
-			cephSecret = strings.TrimSpace(fields[1])
-			break
-		}
-	}
-
-	if cephSecret == "" {
-		return "", fmt.Errorf("Couldn't find a keyring entry")
-	}
-
-	return cephSecret, nil
 }
 
 // CephKeyring gets the key for a particular Ceph cluster and client name.
