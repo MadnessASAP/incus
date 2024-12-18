@@ -163,5 +163,5 @@ func CephKeyring(cluster string, client string) (string, error) {
 	}
 
 	// Give up
-	return "", fmt.Errorf("Couldn't find a Ceph key for %q on %q", client, cluster)
+	return "", fmt.Errorf("Couldn't find a Ceph key for %q on %q: %w", client, cluster, err)
 }
