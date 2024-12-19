@@ -3,7 +3,6 @@ let
   _xgettext-go =
     { buildGoModule
     , fetchFromGitHub
-    , gettext
     }: buildGoModule rec {
       pname = "xgettext-go";
       version = "2.57.1";
