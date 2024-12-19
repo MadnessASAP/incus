@@ -133,12 +133,8 @@ func (d *cephfs) Create() error {
 	d.config["cephfs.path"] = d.config["source"]
 
 	// Parse the namespace / path.
-	fields := strings.SplitN(d.config["cephfs.path"], "/", 2)
-	fsName := fields[0]
-	fsPath := "/"
-	if len(fields) > 1 {
-		fsPath = fields[1]
-	}
+	fsName, fsPath, _ := strings.Cut(d.config["cephfs.path"], "/")
+	fsPath = "/" + fsPath
 
 	// If the filesystem already exists, disallow keys associated to creating the filesystem.
 	fsExists, err := d.fsExists(d.config["cephfs.cluster_name"], d.config["cephfs.user.name"], fsName)
@@ -320,12 +316,8 @@ func (d *cephfs) Create() error {
 // Delete clears any local and remote data related to this driver instance.
 func (d *cephfs) Delete(op *operations.Operation) error {
 	// Parse the namespace / path.
-	fields := strings.SplitN(d.config["cephfs.path"], "/", 2)
-	fsName := fields[0]
-	fsPath := "/"
-	if len(fields) > 1 {
-		fsPath = fields[1]
-	}
+	fsName, fsPath, _ := strings.Cut(d.config["cephfs.path"], "/")
+	fsPath = "/" + fsPath
 
 	// Create a temporary mountpoint.
 	mountPath, err := os.MkdirTemp("", "incus_cephfs_")
@@ -437,12 +429,8 @@ func (d *cephfs) Mount() (bool, error) {
 	}
 
 	// Parse the namespace / path.
-	fields := strings.SplitN(d.config["cephfs.path"], "/", 2)
-	fsName := fields[0]
-	fsPath := ""
-	if len(fields) > 1 {
-		fsPath = fields[1]
-	}
+	fsName, fsPath, _ := strings.Cut(d.config["cephfs.path"], "/")
+	fsPath = "/" + fsPath
 
 	// Collect Ceph information
 	clusterName := d.config["cephfs.cluster_name"]

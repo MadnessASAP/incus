@@ -59,9 +59,16 @@ func CephGetRBDImageName(vol Volume, snapName string, zombie bool) string {
 }
 
 // CephBuildMount creates a mount string and option list from mount parameters.
-func CephBuildMount(user string, key string, fsid string, monitors []string, fs string, path string) (source string, options []string) {
-	source = fmt.Sprintf("%s@%s.%s=%s", user, fsid, fs, path)
+func CephBuildMount(user string, key string, fsid string, monitors []string, fsName string, path string) (source string, options []string) {
+	// if path is blank, assume root of fs
+	if path == "" {
+		path = "/"
+	}
 
+	// build the source path
+	source = fmt.Sprintf("%s@%s.%s=%s", user, fsid, fsName, path)
+
+	// build the options list
 	options = []string{
 		"mon_addr=" + strings.Join(monitors, "/"),
 	}
