@@ -43,6 +43,9 @@ pkgs.mkShell {
     (python3.withPackages (pyPkgs: with pyPkgs; [
       flake8
     ]))
+
+    # running
+    squashfsTools
   ];
   inputsFrom = [
     pkgs.incus
