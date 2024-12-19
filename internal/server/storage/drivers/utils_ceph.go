@@ -74,7 +74,8 @@ func callCephConf(cluster string, id string, conf string, lookup string) (value 
 		if !strings.Contains(id, ".") {
 			id = "client." + id
 		}
-		args = append(args, "--client", id)
+
+		args = append(args, "--name", id)
 	}
 
 	if conf != "" {
