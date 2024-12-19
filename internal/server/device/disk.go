@@ -1785,12 +1785,12 @@ func (d *disk) createDevice(srcPath string) (func(), string, bool, error) {
 		if d.sourceIsCephFs() {
 			// Get fs name and path from d.config.
 			path := strings.TrimPrefix(d.config["source"], "cephfs:")
-			fsName, fsPath, _ := strings.Cut(path, "/")
-			fsPath = "/" + fsPath
+			mdsName, mdsPath, _ := strings.Cut(path, "/")
+			mdsPath = "/" + mdsPath
 			clusterName, userName := d.cephCreds()
 
 			// Get the mount options.
-			mntSrcPath, fsOptions, fsErr := diskCephfsOptions(clusterName, userName, fsName, fsPath)
+			mntSrcPath, fsOptions, fsErr := diskCephfsOptions(clusterName, userName, mdsName, mdsPath)
 			if fsErr != nil {
 				return nil, "", false, fsErr
 			}
