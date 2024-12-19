@@ -3,7 +3,6 @@ let
   _xgettext-go =
     { buildGoModule
     , fetchFromGitHub
-    , gettext
     }: buildGoModule rec {
       pname = "xgettext-go";
       version = "2.57.1";
@@ -44,6 +43,9 @@ pkgs.mkShell {
     (python3.withPackages (pyPkgs: with pyPkgs; [
       flake8
     ]))
+
+    # running
+    squashfsTools
   ];
   inputsFrom = [
     pkgs.incus
