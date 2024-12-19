@@ -62,15 +62,16 @@ func CephGetRBDImageName(vol Volume, snapName string, zombie bool) string {
 func CephBuildMount(user string, key string, fsid string, monitors []string, fs string, path string) (source string, options []string) {
 	source = fmt.Sprintf("%s@%s.%s=%s", user, fsid, fs, path)
 
-	var lst []string
-	for k, v := range map[string]string{
-		"mon_addr": strings.Join(monitors, "/"),
-		"secret":   key,
-	} {
-		lst = append(lst, fmt.Sprintf("%s=%s", k, v))
+	options = []string{
+		"mon_addr=" + strings.Join(monitors, "/"),
 	}
 
-	return source, lst
+	// if key is blank assume cephx is disabled
+	if key != "" {
+		options = append(options, "secret="+key)
+	}
+
+	return source, options
 }
 
 // callCephConf makes a call to `ceph-conf` to retrieve a given lookup value.
@@ -149,7 +150,9 @@ func CephMonitors(cluster string) ([]string, error) {
 	return cephMon, nil
 }
 
-// CephKeyring gets the key for a particular Ceph cluster and client name.
+// CephKeyring gets the key for a particular Ceph cluster and client name. Not
+// finding a key may not be fatal, it may indicate that the cluster does not
+// require authentication.
 func CephKeyring(cluster string, client string) (string, error) {
 	// Sometimes the key is just, like, right there ya know
 	key, err := callCephConf(cluster, client, "", "key")
@@ -178,8 +181,9 @@ func CephKeyring(cluster string, client string) (string, error) {
 		}
 	}
 
+	logger.Warnf("Could not find a key for %q, maybe cephx is disabled?", cluster)
 	// Give up
-	return "", fmt.Errorf("Couldn't find a Ceph key for %q on %q: %w", client, cluster, err)
+	return "", nil
 }
 
 // CephFsid gets the FSID for a given cluster name.
