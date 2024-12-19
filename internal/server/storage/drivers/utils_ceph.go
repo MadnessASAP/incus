@@ -116,7 +116,7 @@ func callCephConf(cluster string, id string, conf string, lookup string) (value 
 	}
 
 	logger.Debug("callCephConf", ctx)
-	return value, err
+	return strings.TrimSpace(value), err
 }
 
 // CephMonitors calls `ceph-conf` for `mon_host` and parses the output for
@@ -182,7 +182,7 @@ func CephKeyring(cluster string, client string) (string, error) {
 	keyring, err := callCephConf(cluster, client, "", "keyring")
 	if err == nil && keyring != "" {
 		// Use ceph-conf again to read the keyfile
-		key, err := callCephConf(cluster, client, keyfile, "key")
+		key, err := callCephConf(cluster, client, keyring, "key")
 		if err == nil && key != "" {
 			return key, nil
 		}
@@ -200,5 +200,5 @@ func CephFsid(cluster string) (string, error) {
 		return "", fmt.Errorf("Couldn't get fsid for %q: %w", cluster, err)
 	}
 
-	return strings.TrimSpace(fsid), nil
+	return fsid, nil
 }
