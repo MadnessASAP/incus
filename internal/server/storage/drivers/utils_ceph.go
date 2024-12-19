@@ -193,5 +193,5 @@ func CephFsid(cluster string) (string, error) {
 		return "", fmt.Errorf("Couldn't get fsid for %q: %w", cluster, err)
 	}
 
-	return fsid, nil
+	return strings.TrimSpace(fsid), nil
 }
