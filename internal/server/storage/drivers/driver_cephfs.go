@@ -265,15 +265,35 @@ func (d *cephfs) Create() error {
 		return fmt.Errorf("Failed to create directory '%s': %w", mountPoint, err)
 	}
 
-	// Get the credentials and host.
-	monAddresses, userSecret, err := d.getConfig(d.config["cephfs.cluster_name"], d.config["cephfs.user.name"])
+	// Collect Ceph information
+	clusterName := d.config["cephfs.cluster_name"]
+	userName := d.config["cephfs.user_name"]
+
+	fsid, err := CephFsid(clusterName)
 	if err != nil {
 		return err
 	}
 
+	monitors, err := CephMonitors(clusterName)
+	if err != nil {
+		return err
+	}
+
+	key, err := CephKeyring(clusterName, userName)
+	if err != nil {
+		return err
+	}
+
+	srcPath, options := CephBuildMount(
+		userName,
+		key,
+		fsid,
+		monitors,
+		fsName, "/",
+	)
+
 	// Mount the pool.
-	srcPath := strings.Join(monAddresses, ",") + ":/"
-	err = TryMount(srcPath, mountPoint, "ceph", 0, fmt.Sprintf("name=%v,secret=%v,mds_namespace=%v", d.config["cephfs.user.name"], userSecret, fsName))
+	err = TryMount(srcPath, mountPoint, "ceph", 0, strings.Join(options, ","))
 	if err != nil {
 		return err
 	}
@@ -326,15 +346,35 @@ func (d *cephfs) Delete(op *operations.Operation) error {
 		return fmt.Errorf("Failed to create directory '%s': %w", mountPoint, err)
 	}
 
-	// Get the credentials and host.
-	monAddresses, userSecret, err := d.getConfig(d.config["cephfs.cluster_name"], d.config["cephfs.user.name"])
+	// Collect Ceph information
+	clusterName := d.config["cephfs.cluster_name"]
+	userName := d.config["cephfs.user_name"]
+
+	fsid, err := CephFsid(clusterName)
 	if err != nil {
 		return err
 	}
 
+	monitors, err := CephMonitors(clusterName)
+	if err != nil {
+		return err
+	}
+
+	key, err := CephKeyring(clusterName, userName)
+	if err != nil {
+		return err
+	}
+
+	srcPath, options := CephBuildMount(
+		userName,
+		key,
+		fsid,
+		monitors,
+		fsName, "/",
+	)
+
 	// Mount the pool.
-	srcPath := strings.Join(monAddresses, ",") + ":/"
-	err = TryMount(srcPath, mountPoint, "ceph", 0, fmt.Sprintf("name=%v,secret=%v,mds_namespace=%v", d.config["cephfs.user.name"], userSecret, fsName))
+	err = TryMount(srcPath, mountPoint, "ceph", 0, strings.Join(options, ","))
 	if err != nil {
 		return err
 	}
@@ -404,21 +444,36 @@ func (d *cephfs) Mount() (bool, error) {
 		fsPath = fields[1]
 	}
 
-	// Get the credentials and host.
-	monAddresses, userSecret, err := d.getConfig(d.config["cephfs.cluster_name"], d.config["cephfs.user.name"])
+	// Collect Ceph information
+	clusterName := d.config["cephfs.cluster_name"]
+	userName := d.config["cephfs.user_name"]
+
+	fsid, err := CephFsid(clusterName)
 	if err != nil {
 		return false, err
 	}
 
-	// Mount options.
-	options := fmt.Sprintf("name=%s,secret=%s,mds_namespace=%s", d.config["cephfs.user.name"], userSecret, fsName)
-	if util.IsTrue(d.config["cephfs.fscache"]) {
-		options += ",fsc"
+	monitors, err := CephMonitors(clusterName)
+	if err != nil {
+		return false, err
 	}
 
+	key, err := CephKeyring(clusterName, userName)
+	if err != nil {
+		return false, err
+	}
+
+	srcPath, options := CephBuildMount(
+		userName,
+		key,
+		fsid,
+		monitors,
+		fsName,
+		fsPath,
+	)
+
 	// Mount the pool.
-	srcPath := strings.Join(monAddresses, ",") + ":/" + fsPath
-	err = TryMount(srcPath, GetPoolMountPath(d.name), "ceph", 0, options)
+	err = TryMount(srcPath, GetPoolMountPath(d.name), "ceph", 0, strings.Join(options, ","))
 	if err != nil {
 		return false, err
 	}

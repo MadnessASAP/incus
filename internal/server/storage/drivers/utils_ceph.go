@@ -58,6 +58,21 @@ func CephGetRBDImageName(vol Volume, snapName string, zombie bool) string {
 	return out
 }
 
+// CephBuildMount creates a mount string and option list from mount parameters.
+func CephBuildMount(user string, key string, fsid string, monitors []string, fs string, path string) (source string, options []string) {
+	source = fmt.Sprintf("%s@%s.%s=%s", user, fsid, fs, path)
+
+	var lst []string
+	for k, v := range map[string]string{
+		"mon_addr": strings.Join(monitors, "/"),
+		"secret":   key,
+	} {
+		lst = append(lst, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	return source, lst
+}
+
 // callCephConf makes a call to `ceph-conf` to retrieve a given lookup value.
 // An empty string for `cluster`, `id`, or `conf` results in default values
 // being used.
@@ -165,4 +180,14 @@ func CephKeyring(cluster string, client string) (string, error) {
 
 	// Give up
 	return "", fmt.Errorf("Couldn't find a Ceph key for %q on %q: %w", client, cluster, err)
+}
+
+// CephFsid gets the FSID for a given cluster name.
+func CephFsid(cluster string) (string, error) {
+	fsid, err := callCephConf(cluster, "", "", "fsid")
+	if err != nil {
+		return "", fmt.Errorf("Couldn't get fsid for %q: %w", cluster, err)
+	}
+
+	return fsid, nil
 }
