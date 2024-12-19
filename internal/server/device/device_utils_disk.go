@@ -18,6 +18,7 @@ import (
 	"github.com/lxc/incus/v6/internal/server/instance"
 	storageDrivers "github.com/lxc/incus/v6/internal/server/storage/drivers"
 	"github.com/lxc/incus/v6/shared/idmap"
+	"github.com/lxc/incus/v6/shared/logger"
 	"github.com/lxc/incus/v6/shared/osarch"
 	"github.com/lxc/incus/v6/shared/revert"
 	"github.com/lxc/incus/v6/shared/subprocess"
@@ -147,6 +148,13 @@ func DiskMount(srcPath string, dstPath string, recursive bool, propagation strin
 	}
 
 	// Mount the filesystem
+	logger.Debug("DiskMount", logger.Ctx{
+		"srcPath":         srcPath,
+		"dstPath":         dstPath,
+		"fsName":          fsName,
+		"flags":           flags,
+		"mountOptionsStr": mountOptionsStr,
+	})
 	err = unix.Mount(srcPath, dstPath, fsName, uintptr(flags), mountOptionsStr)
 	if err != nil {
 		return fmt.Errorf("Unable to mount %q at %q with filesystem %q: %w", srcPath, dstPath, fsName, err)
