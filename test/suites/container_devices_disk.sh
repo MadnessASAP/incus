@@ -156,8 +156,6 @@ test_container_devices_disk_cephfs() {
     return
   fi
 
-  cat /etc/ceph/ceph.conf
-  ceph-conf -L
   incus launch testimage ceph-fs -c security.privileged=true
   incus config device add ceph-fs fs disk source=cephfs:"${INCUS_CEPH_CEPHFS}"/ ceph.user_name=admin ceph.cluster_name=ceph path=/cephfs
   incus exec ceph-fs -- stat /cephfs
