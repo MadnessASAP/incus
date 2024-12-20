@@ -81,15 +81,26 @@ func CephBuildMount(user string, key string, fsid string, monitors []string, fsN
 	return source, options
 }
 
-// callCeph makes a call to the `ceph` admin tool with the given args then
+// callCeph makes a call to ceph with the given args.
+func callCeph(args ...string) (string, error) {
+	out, err := subprocess.RunCommand("ceph", args...)
+	logger.Debug("callCeph", logger.Ctx{
+		"cmd":  "ceph",
+		"args": args,
+		"err":  err,
+		"out":  out,
+	})
+	return strings.TrimSpace(out), err
+}
+
+// callCephJSON makes a call to the `ceph` admin tool with the given args then
 // parses the json output into `out`.
-func callCeph(out any, args ...string) error {
+func callCephJSON(out any, args ...string) error {
 	// prefix json format
 	args = append([]string{"--format", "json"}, args...)
 
 	// make the call
-	jsonOut, err := subprocess.RunCommand("ceph", args...)
-	logger.Debugf("ceph %v: %v => %s", args, err, out)
+	jsonOut, err := callCeph(args...)
 	if err != nil {
 		return err
 	}
@@ -113,7 +124,7 @@ func CephMonitors(cluster string) (addrs []string, err error) {
 		} `json:"mons"`
 	}{}
 
-	err = callCeph(&monitors,
+	err = callCephJSON(&monitors,
 		"--cluster", cluster,
 		"mon", "dump",
 	)
@@ -142,13 +153,30 @@ func CephKeyring(cluster string, client string) (string, error) {
 		client = "client." + client
 	}
 
+	// check that cephx is enabled
+	authType, err := callCeph(
+		"--cluster", cluster,
+		"config", "get", client, "auth_service_required",
+	)
+	if err != nil {
+		return "", fmt.Errorf(
+			"Failed to query ceph config for auth_service_required: %w",
+			err,
+		)
+	}
+
+	if authType == "none" {
+		logger.Infof("Ceph cluster %q has disabled cephx", cluster)
+		return "", nil
+	}
+
 	// call ceph auth get
 	key := struct {
 		Key string `json:"key"`
 	}{}
-	err := callCeph(&key,
+	err = callCephJSON(&key,
 		"--cluster", cluster,
-		"auth", "get", client,
+		"auth", "get-key", client,
 	)
 	if err != nil {
 		return "", fmt.Errorf(
@@ -167,7 +195,7 @@ func CephFsid(cluster string) (string, error) {
 		Fsid string `json:"fsid"`
 	}{}
 
-	err := callCeph(&fsid, "--cluster", cluster, "fsid")
+	err := callCephJSON(&fsid, "--cluster", cluster, "fsid")
 	if err != nil {
 		return "", fmt.Errorf("Couldn't get fsid for %q: %w", cluster, err)
 	}
