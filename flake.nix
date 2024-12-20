@@ -6,7 +6,7 @@
     flake-parts.url = "flake-parts";
   };
 
-  outputs = { flake-parts, ... }@inputs:
+  outputs = { self, flake-parts, nixpkgs, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -14,6 +14,13 @@
       perSystem = { pkgs, ... }: {
         devShells.default = pkgs.callPackage ./.flake/shell.nix { };
         formatter = pkgs.nixpkgs-fmt;
+        checks = {
+          ceph = pkgs.testers.runNixOSTest {
+            name = "test-incus-ceph";
+            nodes.host = ./.flake/tests-runner.nix;
+            testScript = builtins.readFile ./.flake/test-incus-ceph.py;
+          };
+        };
       };
     };
 }
