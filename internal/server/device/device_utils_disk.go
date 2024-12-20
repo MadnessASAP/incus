@@ -148,7 +148,7 @@ func DiskMount(srcPath string, dstPath string, recursive bool, propagation strin
 	}
 
 	// Mount the filesystem
-	logger.Debug("DiskMount", logger.Ctx{
+	logger.Info("Mounting disk", logger.Ctx{
 		"srcPath":         srcPath,
 		"dstPath":         dstPath,
 		"fsName":          fsName,
