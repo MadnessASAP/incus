@@ -350,6 +350,9 @@ jobs:
           done
           sudo microceph.ceph status
           sudo rm -f /snap/bin/rbd
+          # Show final config
+          sudo microceph.ceph config dump
+          sudo microceph.ceph auth ls
 
       - name: "Ensure offline mode (block image server)"
         run: |
