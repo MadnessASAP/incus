@@ -59,10 +59,21 @@ func CephGetRBDImageName(vol Volume, snapName string, zombie bool) string {
 }
 
 // CephBuildMount creates a mount string and option list from mount parameters.
-func CephBuildMount(user string, key string, fsid string, monitors []string, fsName string, path string) (source string, options []string) {
+func CephBuildMount(
+	user string, key string,
+	fsid string, monitors Monitors,
+	fsName string, path string,
+) (source string, options []string) {
 	// if path is blank, assume root of fs
 	if path == "" {
 		path = "/"
+	}
+
+	msgrV2 := false
+	monAddrs := monitors.V1
+	if len(monitors.V2) > 0 {
+		msgrV2 = true
+		monAddrs = monitors.V2
 	}
 
 	// build the source path
@@ -70,12 +81,19 @@ func CephBuildMount(user string, key string, fsid string, monitors []string, fsN
 
 	// build the options list
 	options = []string{
-		"mon_addr=" + strings.Join(monitors, "/"),
+		"mon_addr=" + strings.Join(monAddrs, "/"),
 	}
 
 	// if key is blank assume cephx is disabled
 	if key != "" {
 		options = append(options, "secret="+key)
+	}
+
+	// pick connection mode
+	if msgrV2 {
+		options = append(options, "ms_mode=prefer-secure")
+	} else {
+		options = append(options, "ms_mode=legacy")
 	}
 
 	return source, options
@@ -110,40 +128,61 @@ func callCephJSON(out any, args ...string) error {
 	return err
 }
 
+// Monitors holds a list of ceph monitor addresses based on which protocol they
+// expect.
+type Monitors struct {
+	V1 []string
+	V2 []string
+}
+
 // CephMonitors returns a list of public monitor IP:ports for the given cluster.
-func CephMonitors(cluster string) (addrs []string, err error) {
+func CephMonitors(cluster string) (Monitors, error) {
 	// get the monitor dump, there may be other better ways but this is
 	// quick and easy
 	monitors := struct {
 		Mons []struct {
 			PublicAddrs struct {
 				Addrvec []struct {
+					Type string `json:"type"`
 					Addr string `json:"addr"`
 				} `json:"addrvec"`
 			} `json:"public_addrs"`
 		} `json:"mons"`
 	}{}
 
-	err = callCephJSON(&monitors,
+	err := callCephJSON(&monitors,
 		"--cluster", cluster,
 		"mon", "dump",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Ceph mon dump for %q failed: %w", cluster, err)
+		return Monitors{}, fmt.Errorf("Ceph mon dump for %q failed: %w", cluster, err)
 	}
 
 	// loop through monitors then monitor addresses and add them to the list
+	var ep Monitors
 	for _, mon := range monitors.Mons {
 		for _, addr := range mon.PublicAddrs.Addrvec {
-			addrs = append(addrs, addr.Addr)
+			if addr.Type == "v1" {
+				ep.V1 = append(ep.V1, addr.Addr)
+			} else if addr.Type == "v2" {
+				ep.V2 = append(ep.V2, addr.Addr)
+			} else {
+				logger.Warnf("Unknown ceph monitor address type: %q:%q",
+					addr.Type, addr.Addr,
+				)
+			}
 		}
 	}
 
-	if len(addrs) == 0 {
-		return nil, fmt.Errorf("No ceph monitors for %q", cluster)
+	if len(ep.V2) == 0 {
+		if len(ep.V1) == 0 {
+			return Monitors{}, fmt.Errorf("No ceph monitors for %q", cluster)
+		}
+
+		logger.Warnf("Only found v1 monitors for ceph cluster %q", cluster)
 	}
 
-	return addrs, nil
+	return ep, nil
 }
 
 // CephKeyring retrieves the CephX key for the given entity.
