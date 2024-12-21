@@ -82,6 +82,7 @@ func CephBuildMount(
 	// build the options list
 	options = []string{
 		"mon_addr=" + strings.Join(monAddrs, "/"),
+		"user=" + user,
 	}
 
 	// if key is blank assume cephx is disabled
@@ -91,7 +92,7 @@ func CephBuildMount(
 
 	// pick connection mode
 	if msgrV2 {
-		options = append(options, "ms_mode=prefer-secure")
+		options = append(options, "ms_mode=prefer-crc")
 	} else {
 		options = append(options, "ms_mode=legacy")
 	}
