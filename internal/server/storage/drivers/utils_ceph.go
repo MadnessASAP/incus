@@ -82,7 +82,7 @@ func CephBuildMount(
 	// build the options list
 	options = []string{
 		"mon_addr=" + strings.Join(monAddrs, "/"),
-		"user=" + user,
+		"name=" + user,
 	}
 
 	// if key is blank assume cephx is disabled
