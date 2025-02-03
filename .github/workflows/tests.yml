@@ -399,7 +399,6 @@ jobs:
         env:
           CGO_LDFLAGS_ALLOW: "(-Wl,-wrap,pthread_create)|(-Wl,-z,now)"
           INCUS_CEPH_CLUSTER: "ceph"
-          INCUS_CEPH_CEPHFS: "cephfs"
           INCUS_CEPH_CEPHOBJECT_RADOSGW: "http://127.0.0.1"
           INCUS_CONCURRENT: "1"
           INCUS_VERBOSE: "1"
